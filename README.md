@@ -70,7 +70,7 @@ Esse fluxo elimina a sobrecarga da rede, pois o cliente não precisa ficar pergu
 ---
 
 ## 📸 Print da tela do sistema funcionando
-![Print 201 Created](/.png)
+![Print 201 Created](imagens/websoc.png)
 
 
 
