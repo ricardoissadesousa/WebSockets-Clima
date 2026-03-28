@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitoramento de Clima em Tempo Real</title>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f9; padding: 20px; }
+        #status { font-weight: bold; margin-bottom: 20px; padding: 10px; border-radius: 5px; display: inline-block;}
+        .conectado { background-color: #d4edda; color: #155724; }
+        .desconectado { background-color: #f8d7da; color: #721c24; }
+
+        #dashboard { display: flex; flex-wrap: wrap; gap: 15px; }
+
+        .card {
+            padding: 15px; border-radius: 8px; width: 200px; color: white;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1); transition: 0.3s;
+        }
+        .card h3 { margin-top: 0; }
+        .card p { margin: 5px 0; font-size: 14px; }
+        .temp { font-size: 24px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<h2>📡 Dashboard Climático (WebSockets)</h2>
+<div id="status" class="desconectado">Status: Desconectado</div>
+
+<div id="dashboard">
+</div>
+
+<script>
+    var stompClient = null;
+
+    function conectar() {
+        // Conecta no endpoint definido no WebSocketConfig
+        var socket = new SockJS('/ws');
+        stompClient = Stomp.over(socket);
+
+        stompClient.connect({}, function (frame) {
+            // Atualiza a tela de status
+            var statusDiv = document.getElementById('status');
+            statusDiv.innerText = 'Status: Conectado';
+            statusDiv.className = 'conectado';
+            console.log('Conectado: ' + frame);
+
+            // Se inscreve (Subscribe) no tópico para ouvir o servidor
+            stompClient.subscribe('/topic/clima', function (mensagem) {
+                var dadosClima = JSON.parse(mensagem.body);
+                exibirNoDashboard(dadosClima);
+            });
+        }, function (erro) {
+            document.getElementById('status').innerText = 'Status: Desconectado (Erro)';
+            document.getElementById('status').className = 'desconectado';
+        });
+    }
+
+    function exibirNoDashboard(dados) {
+        var dashboard = document.getElementById('dashboard');
+
+        // Cria um novo elemento de Card
+        var card = document.createElement('div');
+        card.className = 'card';
+
+        // Lógica para mudar a cor do card baseado na temperatura
+        if (dados.temperatura < 20) {
+            card.style.backgroundColor = '#007bff'; // Azul (Frio)
+        } else if (dados.temperatura >= 20 && dados.temperatura < 28) {
+            card.style.backgroundColor = '#28a745'; // Verde (Agradável)
+        } else {
+            card.style.backgroundColor = '#dc3545'; // Vermelho (Calor)
+        }
+
+        // Monta o conteúdo HTML do card
+        card.innerHTML = `
+                <h3>${dados.cidade}</h3>
+                <p class="temp">${dados.temperatura} °C</p>
+                <p>${dados.descricao}</p>
+                <p><small>Atualizado às: ${dados.horario}</small></p>
+            `;
+
+        // Adiciona o card como o primeiro da lista
+        dashboard.prepend(card);
+
+        // Mantém no máximo 15 cards na tela para não travar o navegador
+        if(dashboard.children.length > 15) {
+            dashboard.removeChild(dashboard.lastChild);
+        }
+    }
+
+    // Tenta conectar assim que a página carrega
+    window.onload = conectar;
+</script>
+</body>
+</html>
